@@ -1,0 +1,21 @@
+# short_open_tag = On
+# expose_php = off
+memory_limit = 256M
+cgi.fix_pathinfo = 0
+# upload_max_filesize = 100M
+# post_max_size = 101M
+max_execution_time = 360
+# date.timezone = Asia/Seoul
+
+short_open_tag = On
+expose_php = Off
+display_errors = On
+error_log = php_errors.log
+error_reporting = E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_USER_DEPRECATED
+variables_order = "EGPCS"
+post_max_size = 100M
+upload_max_filesize = 100M
+date.timezone = "Asia/Seoul"
+session.gc_maxlifetime = 86400/
+disable_functions = system,exec,passthru,proc_open,popen,curl_multi_exec,parse_ini_file,show_source
+allow_url_fopen = Off

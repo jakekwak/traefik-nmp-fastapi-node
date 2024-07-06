@@ -1,0 +1,37 @@
+api:
+  dashboard: true
+  insecure: false # Don't do that in production
+  debug: true #  디버깅용 log:와 연동
+
+# Entrypoints
+entryPoints:
+  web:
+    address: :80
+
+  websecure:
+    address: :443
+
+# Providers
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+
+log:
+  filePath: "/traefik/logs/traefik.log"
+  format: json
+  level: DEBUG
+
+accessLog:
+  filePath: "/traefik/logs/access.log"
+
+certificatesResolvers:
+  myresolver:
+    acme:
+      email: jakekwak@gmail.com
+      storage: /home/letsencrypt/acme.json
+      httpChallenge:
+        entryPoint: web
+
+serversTransport:
+  insecureSkipVerify: true

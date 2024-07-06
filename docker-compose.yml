@@ -1,0 +1,121 @@
+version: "3.9"
+services:
+  reverse-proxy:
+    image: traefik:v3.0
+    container_name: "traefik3"
+    command:
+      - "--api.insecure=false"
+      - "--api.dashboard=true"
+      # 디버깅
+      - "--api.debug=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      # 디버깅
+      - "--log.LEVEL=DEBUG"
+      - "--log.filepath=/letsencrypt/access.log"
+      - "--entryPoints.web.address=:80"
+    ports:
+      - "80:80"
+    volumes:
+      - "./services/letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.${EXT_ENDPOINT1}`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=web"
+      ## 외부파일로 패스워드는 에러가 남  .htpasswd
+      - "traefik.http.routers.dashboard.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=user:$$apr1$$q8eZFHjF$$Fvmkk//V6Btlaf2i/ju5n/" ## user/password
+
+  nginx_server:
+    container_name: nginx_server
+    restart: unless-stopped
+    image: "nginx:latest"
+    depends_on:
+      - php-fpm
+    expose:
+      - 8080
+    volumes:
+      - ./htdocs:/var/www/html
+      - ./services/nginx/conf.d/:/etc/nginx/conf.d/:ro,cached
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx_local.rule=Host(`www.${EXT_ENDPOINT1}`, `${EXT_ENDPOINT1}`)"
+      - "traefik.http.routers.nginx_local.entrypoints=web"
+
+  php-fpm:
+    build: ./services/php/${PHP_VERSION}
+    restart: always
+    expose:
+      - 9000
+    depends_on:
+      - ${MYSQL_HOST}
+    volumes:
+      - ./htdocs:/var/www/html
+      - ./services/php/${PHP_VERSION}/php.ini:/usr/local/etc/php/php.ini
+    env_file: .env
+
+  mariadb:
+    image: mariadb:latest
+    restart: always
+    container_name: mariadb
+    # env_file: ".env"
+    volumes:
+      - ./services/mariadb/data:/var/lib/mysql/data
+      - ./services/mariadb/logs:/var/lib/mysql/logs
+    expose:
+      - 3306
+    environment:
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+      - MYSQL_DATABASE=database
+      - MYSQL_ROOT_PASSWORD=root1234
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    restart: always
+    container_name: phpmyadmin
+    expose:
+      - 8090
+    depends_on:
+      - mariadb
+    environment:
+      - PMA_HOST=mariadb
+      - PMA_PORT=3306
+      - PMA_ARBITRARY=1
+      - MYSQL_ROOT_PASSWORD=root1234
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.phpmyadmin_local.rule=Host(`pma.${EXT_ENDPOINT1}`)"
+      - "traefik.http.routers.phpmyadmin_local.entrypoints=web"
+
+  node-server0:
+    build:
+      context: ./nodejs/server0
+      dockerfile: Dockerfile
+    container_name: node-server0
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.node-server0.rule=Host(`node0.${EXT_ENDPOINT1}`)"
+      - "traefik.http.routers.node-server0.entrypoints=web"
+
+  node-server1:
+    build:
+      context: ./nodejs/server1
+      dockerfile: Dockerfile
+    container_name: node-server1
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.node-server1.rule=Host(`node1.${EXT_ENDPOINT1}`)"
+      - "traefik.http.routers.node-server1.entrypoints=web"
+
+  fastapi-server:
+    build:
+      context: ./fastapi
+      dockerfile: Dockerfile
+    container_name: fastapi-server
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fastapi-server.rule=Host(`fastapi.${EXT_ENDPOINT1}`)"
+      - "traefik.http.routers.fastapi-server.entrypoints=web"
