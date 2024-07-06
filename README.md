@@ -68,7 +68,7 @@ docker rmi [Image ID]
 
   - password: password
 
-![alt text](image-3.png)
+![alt text](image-5.png)
 
 - www.gnuboard.test 와 demo.gnuboard.test
 
