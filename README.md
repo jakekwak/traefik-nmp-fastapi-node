@@ -47,21 +47,29 @@ docker rmi [Image ID]
 
 ## 각 모듈 동작
 - fastapi.gnuboard.test
+
 ![alt text](image-4.png)
 
 - pma.gnuboard.test
+
 ![alt text](image.png)
 
 - node0.gnuboard.test
+
 ![alt text](image-1.png)
 
 - node1.gnuboard.test
+
 ![alt text](image-2.png)
 
 - traefik.gnuboard.test
-id: user
-password: password
+
+  - id: user
+
+  - password: password
+
 ![alt text](image-3.png)
 
 - www.gnuboard.test 와 demo.gnuboard.test
+
 동작이 안됨.
