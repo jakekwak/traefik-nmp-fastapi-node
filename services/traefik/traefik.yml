@@ -28,7 +28,7 @@ accessLog:
 certificatesResolvers:
   myresolver:
     acme:
-      email: jakekwak@gmail.com
+      email: lets_email@gmail.com
       storage: /home/letsencrypt/acme.json
       httpChallenge:
         entryPoint: web

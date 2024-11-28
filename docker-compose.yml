@@ -1,11 +1,15 @@
-version: "3.9"
 services:
   reverse-proxy:
-    image: traefik:v3.0
+    image: traefik:latest
     container_name: "traefik3"
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - TZ=US/Atlanta
     command:
-      - "--api.insecure=false"
       - "--api.dashboard=true"
+      - "--api.insecure=true"
       # 디버깅
       - "--api.debug=true"
       - "--providers.docker=true"
@@ -13,9 +17,13 @@ services:
       # 디버깅
       - "--log.LEVEL=DEBUG"
       - "--log.filepath=/letsencrypt/access.log"
+      - "--accessLog=true"
+      - "--accessLog.filePath=./access.log"
+      - "--providers.docker.watch=true"
       - "--entryPoints.web.address=:80"
     ports:
       - "80:80"
+      # - "8080:8080"
     volumes:
       - "./services/letsencrypt:/letsencrypt"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
@@ -28,21 +36,22 @@ services:
       - "traefik.http.routers.dashboard.middlewares=auth"
       - "traefik.http.middlewares.auth.basicauth.users=user:$$apr1$$q8eZFHjF$$Fvmkk//V6Btlaf2i/ju5n/" ## user/password
 
+
   nginx_server:
     container_name: nginx_server
     restart: unless-stopped
     image: "nginx:latest"
     depends_on:
       - php-fpm
-    expose:
-      - 8080
     volumes:
       - ./htdocs:/var/www/html
       - ./services/nginx/conf.d/:/etc/nginx/conf.d/:ro,cached
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.nginx_local.rule=Host(`www.${EXT_ENDPOINT1}`, `${EXT_ENDPOINT1}`)"
+      - "traefik.http.routers.nginx_local.rule=Host(`${EXT_ENDPOINT1}`)"
       - "traefik.http.routers.nginx_local.entrypoints=web"
+      - "traefik.http.services.nginx_local.loadbalancer.server.port=80" # 추가
+
 
   php-fpm:
     build: ./services/php/${PHP_VERSION}
@@ -95,6 +104,8 @@ services:
       context: ./nodejs/server0
       dockerfile: Dockerfile
     container_name: node-server0
+    expose:
+      - 8091
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.node-server0.rule=Host(`node0.${EXT_ENDPOINT1}`)"
@@ -105,6 +116,8 @@ services:
       context: ./nodejs/server1
       dockerfile: Dockerfile
     container_name: node-server1
+    expose:
+      - 8092
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.node-server1.rule=Host(`node1.${EXT_ENDPOINT1}`)"
@@ -115,7 +128,11 @@ services:
       context: ./fastapi
       dockerfile: Dockerfile
     container_name: fastapi-server
+    expose:
+      - 8093
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.fastapi-server.rule=Host(`fastapi.${EXT_ENDPOINT1}`)"
       - "traefik.http.routers.fastapi-server.entrypoints=web"
+      - "traefik.http.services.fastapi-server.loadbalancer.server.port=8093"  # 추가
+
